@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESG Report Synthesizer & Designer for SMEs</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2pdf.js CDN for reliable PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        
+        .preview-container h1, .preview-container h2, .preview-container h3, .preview-container .report-title {
+            font-family: 'Playfair Display', serif;
+        }
+
+        /* Custom Scrollbar for sleek UI */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Print formatting helper styles */
+        .page-break {
+            page-break-before: always;
+            break-before: page;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+
+    <!-- Toast Notification System -->
+    <div id="toast" class="fixed top-5 right-5 z-50 transform translate-y-[-20px] opacity-0 pointer-events-none transition-all duration-300 ease-out bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-800 max-w-sm">
+        <div id="toastIcon" class="w-8 h-8 rounded-full flex items-center justify-center bg-indigo-500/10 text-indigo-400">
+            <i class="fa-solid fa-info text-sm"></i>
+        </div>
+        <p id="toastMessage" class="text-xs font-medium text-slate-200"></p>
+    </div>
+
+    <!-- Application Top Navigation Header bar -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 backdrop-blur-md bg-white/90">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-100">
+                    <i class="fa-solid fa-leaf-list text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-sm font-extrabold text-slate-900 tracking-tight flex items-center gap-1.5">
+                        SME ESG Report <span class="text-indigo-600 font-medium text-[10px] bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded-md uppercase tracking-wider">Studio v2.5</span>
+                    </h1>
+                    <p class="text-[10px] text-slate-500 font-medium">Enterprise Sustainability Assistant Powered by AI Synthesizer</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <button onclick="loadSampleData()" class="px-3 py-1.5 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                    <i class="fa-solid fa-folder-open text-slate-400"></i> Load Mock SME Data
+                </button>
+                <button onclick="clearForm()" class="px-3 py-1.5 border border-rose-100 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all">
+                    <i class="fa-solid fa-trash-can"></i> Clear All Data
+                </button>
+                <div class="h-6 w-px bg-slate-200 mx-1"></div>
+                <button onclick="exportToPDF()" class="px-4 py-1.5 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-lg text-xs font-bold shadow-sm shadow-emerald-100 flex items-center gap-1.5 transition-all group">
+                    <i class="fa-solid fa-file-pdf text-emerald-200 group-hover:text-white transition-colors"></i> Export Professional PDF
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Layout Grid split interface Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden">
+        
+        <!-- Left configuration sidebar control layout pane panel -->
+        <section class="lg:col-span-5 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-[calc(100vh-160px)]">
+            <!-- Modular Category Tabs switcher header -->
+            <div class="flex border-b border-slate-100 bg-slate-50/50 p-1.5 gap-1 overflow-x-auto">
+                <button onclick="switchTab('tab-profile')" id="btn-tab-profile" class="tab-btn active flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-all text-indigo-600 bg-white shadow-xs border border-slate-200/50">
+                    <i class="fa-solid fa-building text-slate-400"></i> Profile
+                </button>
+                <button onclick="switchTab('tab-goals')" id="btn-tab-goals" class="tab-btn flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-all text-slate-600 hover:bg-white/60">
+                    <i class="fa-solid fa-bullseye-arrow text-slate-400"></i> 1. Goals
+                </button>
+                <button onclick="switchTab('tab-materiality')" id="btn-tab-materiality" class="tab-btn flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-all text-slate-600 hover:bg-white/60">
+                    <i class="fa-solid fa-scale-balanced text-slate-400"></i> 2. Material
+                </button>
+                <button onclick="switchTab('tab-csr')" id="btn-tab-csr" class="tab-btn flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-all text-slate-600 hover:bg-white/60">
+                    <i class="fa-solid fa-users text-slate-400"></i> 3. CSR
+                </button>
+                <button onclick="switchTab('tab-finance')" id="btn-tab-finance" class="tab-btn flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-all text-slate-600 hover:bg-white/60">
+                    <i class="fa-solid fa-chart-line-up text-slate-400"></i> 4. Finance
+                </button>
+                <button onclick="switchTab('tab-narrative')" id="btn-tab-narrative" class="tab-btn flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-all text-slate-600 hover:bg-white/60">
+                    <i class="fa-solid fa-wand-magic-sparkles text-slate-400"></i> 5. Narrative
+                </button>
+            </div>
+
+            <!-- Tab Contents Form Viewports Box Wrapper Section -->
+            <div class="flex-1 overflow-y-auto p-5 space-y-5">
+                
+                <!-- TAB 1: Company Profile Info panel segment layout block -->
+                <div id="tab-profile" class="tab-content space-y-4">
+                    <div class="border-b border-slate-100 pb-2">
+                        <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Company Identity & Aesthetics</h3>
+                        <p class="text-[11px] text-slate-500">Configure corporate information and metadata attributes for the document layout engine.</p>
+                    </div>
+                    
+                    <!-- Secure Client-Side API Key Configuration Box -->
+                    <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-3 mb-4">
+                        <label class="block text-xs font-bold text-indigo-950 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                            🔑 Gemini API Key
+                        </label>
+                        <input type="password" id="geminiApiKey" class="w-full px-3 py-2 border border-indigo-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs font-mono" placeholder="AIzaSy...">
+                        <span class="text-[9px] text-slate-500 block mt-1">Get an API key securely from Google AI Studio. It runs safely inside your browser.</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Company Legal Name</label>
+                            <input type="text" id="companyName" oninput="liveUpdatePreview()" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs text-slate-800" placeholder="e.g. Nexus Logistics Ltd">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Sector Industry</label>
+                            <input type="text" id="industry" oninput="liveUpdatePreview()" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs text-slate-800" placeholder="e.g. Third-Party Supply Chain">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Reporting Period Fiscal Year</label>
+                            <input type="text" id="reportingYear" oninput="liveUpdatePreview()" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs text-slate-800" placeholder="e.g. FY 2025 Annual Synthesis">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Report Theme Color Accent</label>
+                            <div class="flex gap-2">
+                                <input type="color" id="primaryColor" onchange="liveUpdatePreview()" value="#059669" class="w-10 h-8 p-0.5 border border-slate-200 rounded-lg cursor-pointer">
+                                <select id="colorPalette" onchange="applyPresetPalette()" class="flex-1 px-2 py-1.5 border border-slate-200 rounded-lg text-xs bg-white text-slate-700 focus:outline-none">
+                                    <option value="emerald">Emerald Forest Eco</option>
+                                    <option value="indigo">Indigo Tech Corporate</option>
+                                    <option value="teal">Teal Marine Oceanic</option>
+                                    <option value="slate">Minimalist Slate Charcoal</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Executive CEO Letter Intro Prologue</label>
+                        <textarea id="ceoMessage" oninput="liveUpdatePreview()" rows="4" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs text-slate-800 leading-relaxed" placeholder="Write a short statement from management regarding commitment towards global corporate citizenships, sustainability frameworks, carbon tracking..."></textarea>
+                    </div>
+                </div>
+
+                <!-- TAB 2: Sustainability Goals segment panel layout block -->
+                <div id="tab-goals" class="tab-content hidden space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">1. Strategic Sustainability Goals</h3>
+                            <p class="text-[11px] text-slate-500">Formulate structured parameters tracking organizational ESG milestone targets.</p>
+                        </div>
+                        <button onclick="generateAIGoals()" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> AI Synthesize
+                        </button>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Raw Base Keywords Context Data Buffer</label>
+                        <textarea id="sustainKeywords" rows="2" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-800" placeholder="e.g. 30% carbon offset by 2028, install solar grid panel arrays, eliminate single-use office plastic plastics..."></textarea>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="p-3 border border-slate-100 rounded-xl bg-slate-50/50 space-y-2">
+                            <span class="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider bg-emerald-50 px-1.5 py-0.5 border border-emerald-100 rounded">Goal Category Core Target #1</span>
+                            <input type="text" id="goal1Title" oninput="liveUpdatePreview()" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold" placeholder="Goal Heading/Name Structure">
+                            <textarea id="goal1Desc" oninput="liveUpdatePreview()" rows="2" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-600" placeholder="Actionable milestone objectives mapping targets..."></textarea>
+                        </div>
+                        <div class="p-3 border border-slate-100 rounded-xl bg-slate-50/50 space-y-2">
+                            <span class="text-[10px] font-extrabold text-blue-700 uppercase tracking-wider bg-blue-50 px-1.5 py-0.5 border border-blue-100 rounded">Goal Category Core Target #2</span>
+                            <input type="text" id="goal2Title" oninput="liveUpdatePreview()" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold" placeholder="Goal Heading/Name Structure">
+                            <textarea id="goal2Desc" oninput="liveUpdatePreview()" rows="2" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-600" placeholder="Actionable milestone objectives mapping targets..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: Materiality Matrix Matrix panel block -->
+                <div id="tab-materiality" class="tab-content hidden space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">2. Stakeholder Materiality Matrix</h3>
+                            <p class="text-[11px] text-slate-500">Determine high priority assessment frameworks affecting key operational aspects.</p>
+                        </div>
+                        <button onclick="generateAIMateriality()" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> AI Synthesize
+                        </button>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Raw Stakeholder Concerns Focus</label>
+                        <textarea id="materialityKeywords" rows="2" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-800" placeholder="e.g. labor supply safety regulation compliance, supply chain tracking transparent logs, packaging waste reduction loops..."></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="p-3 border border-slate-100 rounded-xl bg-slate-50/50 space-y-2">
+                            <span class="text-[10px] font-extrabold text-purple-700 uppercase tracking-wider bg-purple-50 px-1.5 py-0.5 border border-purple-100 rounded">High Focus Pillar Alpha</span>
+                            <input type="text" id="mat1Title" oninput="liveUpdatePreview()" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold" placeholder="Pillar Title Focus">
+                            <input type="text" id="mat1Impact" oninput="liveUpdatePreview()" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-indigo-600 font-medium" placeholder="Impact Score Level (e.g. High Impact)">
+                        </div>
+                        <div class="p-3 border border-slate-100 rounded-xl bg-slate-50/50 space-y-2">
+                            <span class="text-[10px] font-extrabold text-purple-700 uppercase tracking-wider bg-purple-50 px-1.5 py-0.5 border border-purple-100 rounded">High Focus Pillar Beta</span>
+                            <input type="text" id="mat2Title" oninput="liveUpdatePreview()" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold" placeholder="Pillar Title Focus">
+                            <input type="text" id="mat2Impact" oninput="liveUpdatePreview()" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-indigo-600 font-medium" placeholder="Impact Score Level (e.g. Critical Impact)">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: Corporate Social Responsibilities segment panel layout block -->
+                <div id="tab-csr" class="tab-content hidden space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">3. CSR & Workplace Human Capital</h3>
+                            <p class="text-[11px] text-slate-500">Structure metrics reflecting inclusion frameworks, employee mental welfare, and safe conditions.</p>
+                        </div>
+                        <button onclick="generateAICsr()" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> AI Synthesize
+                        </button>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Raw Social Workforce Operations Input</label>
+                        <textarea id="csrKeywords" rows="2" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-800" placeholder="e.g. diversity quota hits 45% women management level, 40 hours continuous training technical workshops..."></textarea>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Workplace Diversity Inclusion Narrative</label>
+                            <textarea id="csrDiversity" oninput="liveUpdatePreview()" rows="2" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-700" placeholder="Synthesized text data outputs detailing company records metrics..."></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Occupational Health Safety Protocols</label>
+                            <textarea id="csrSafety" oninput="liveUpdatePreview()" rows="2" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-700" placeholder="Synthesized text data outputs tracking safety compliance records..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 5: Sustainable Finance and Procurement panel segment block -->
+                <div id="tab-finance" class="tab-content hidden space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">4. Green Financing & Sustainable Investment</h3>
+                            <p class="text-[11px] text-slate-500">Record capitalization allocated strictly towards carbon offset loops or green infrastructure asset buys.</p>
+                        </div>
+                        <button onclick="generateAIFinance()" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> AI Synthesize
+                        </button>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Raw Financial Allocations Context Data</label>
+                        <textarea id="financeKeywords" rows="2" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-800" placeholder="e.g. 50000 USD spent updating warehouse building isolation seals, green credits investments tracking matrix logs..."></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Capital Expenditure (USD)</label>
+                            <input type="text" id="finCapEx" oninput="liveUpdatePreview()" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono" placeholder="e.g. $45,000">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Carbon Mitigation Allocation</label>
+                            <input type="text" id="finCarbonMit" oninput="liveUpdatePreview()" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono" placeholder="e.g. $12,500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Green Capital Allocation Narrative Statement</label>
+                        <textarea id="financeStatement" oninput="liveUpdatePreview()" rows="2" class="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-700" placeholder="Summarize financial tracking frameworks..."></textarea>
+                    </div>
+                </div>
+
+                <!-- TAB 6: Final Executive Narrative Synthesis segment panel block -->
+                <div id="tab-narrative" class="tab-content hidden space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">5. Final Executive Strategic Narrative</h3>
+                            <p class="text-[11px] text-slate-500">Compile sections 1 through 4 into a unified strategic statement.</p>
+                        </div>
+                        <button onclick="generateAINarrative()" class="px-2 py-1 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg text-[10px] font-extrabold flex items-center gap-1 shadow-sm shadow-indigo-100 transition-all">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Synthesize Master Narrative
+                        </button>
+                    </div>
+                    <div class="p-3 border border-amber-100 bg-amber-50/50 rounded-xl">
+                        <p class="text-[10px] text-amber-800 leading-normal flex gap-1.5 items-start">
+                            <i class="fa-solid fa-circle-exclamation text-amber-600 mt-0.5"></i>
+                            The Master Narrative compiler evaluates global parameters across all previous layout panels to assemble a cohesive executive summary framework.
+                        </p>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Synthesized Executive Strategic Statement Summary Output</label>
+                        <textarea id="masterNarrativeOutput" oninput="liveUpdatePreview()" rows="10" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs text-slate-800 leading-relaxed font-normal" placeholder="Click the synthesis action trigger button to generate a master corporate statement framework text structure map context..."></textarea>
+                    </div>
+                </div>
+
+            </div>
+            
+            <!-- Structural Sidebar Panel Status indicators block footer -->
+            <div class="border-t border-slate-100 p-3 bg-slate-50 text-[10px] text-slate-500 flex justify-between items-center font-medium">
+                <span class="flex items-center gap-1"><i class="fa-solid fa-circle-check text-emerald-500"></i> Auto-Layout Engine Enabled</span>
+                <span id="charCounter">0 Characters Saved</span>
+            </div>
+        </section>
+
+        <!-- Right Side Document Live Preview Canvas Interface Pane Window Container -->
+        <section class="lg:col-span-7 flex flex-col h-[calc(100vh-160px)]">
+            <div class="flex items-center justify-between mb-2 px-2">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> WYSIWYG Live Report Print Preview Canvas
+                </span>
+                <div class="flex items-center gap-1">
+                    <span class="text-[10px] bg-slate-200/60 text-slate-600 px-2 py-0.5 rounded-md font-semibold">Standard A4 Layout</span>
+                </div>
+            </div>
+            
+            <!-- Document Canvas Main Scroll Body Window -->
+            <div class="flex-1 bg-slate-600 rounded-2xl border border-slate-700/30 p-6 overflow-y-auto shadow-inner flex justify-center">
+                
+                <!-- Targeted A4 Sheet Content Rendered Wrapper Node Container -->
+                <div id="reportCanvas" class="preview-container bg-white w-[794px] min-h-[1123px] shadow-2xl p-12 text-slate-800 text-xs relative flex flex-col justify-between" style="box-sizing: border-box;">
+                    
+                    <!-- Top Ribbon Decorative Bar Header Element Accent colored border mapping structure -->
+                    <div id="canvasAccentBar" class="absolute top-0 left-0 right-0 h-3 bg-emerald-600 transition-colors duration-300"></div>
+                    
+                    <!-- Document Structure Flow Core Box Elements -->
+                    <div class="space-y-8 flex-1">
+                        
+                        <!-- Main Title Cover Block Header Area -->
+                        <div class="border-b-2 border-slate-100 pb-6 mt-4">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h1 id="previewReportTitle" class="text-3xl font-extrabold text-slate-900 tracking-tight leading-none mb-1.5">Sustainability & ESG Synthesis Report</h1>
+                                    <p id="previewCompanyName" class="text-sm font-bold text-emerald-600 tracking-wide uppercase transition-colors duration-300">Nexus Logistics Corporation</p>
+                                </div>
+                                <div class="text-right">
+                                    <span id="previewReportingYear" class="text-xs font-black tracking-widest text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg uppercase">FY 2025 Annual</span>
+                                    <p class="text-[9px] text-slate-400 font-bold tracking-wider uppercase mt-1">SME ESG Compliance Mapping</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION ONE: Leadership message block prologue segment -->
+                        <div class="space-y-2">
+                            <h2 class="text-sm font-extrabold text-slate-900 tracking-wide uppercase flex items-center gap-2">
+                                <i class="fa-solid fa-feather-pointed text-slate-400 text-xs"></i> 1. Executive Statement from Leadership
+                            </h2>
+                            <p id="previewCeoMessage" class="text-slate-600 leading-relaxed text-justify whitespace-pre-line bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                                This enterprise sustainability synthesis document highlights our ongoing commitment toward tracking metrics transparently...
+                            </p>
+                        </div>
+
+                        <!-- SECTION TWO: Core Goal mapping dashboard template block layout -->
+                        <div class="space-y-3">
+                            <h2 class="text-sm font-extrabold text-slate-900 tracking-wide uppercase flex items-center gap-2">
+                                <i class="fa-solid fa-bullseye-arrow text-slate-400 text-xs"></i> 2. Strategic Environmental Commitments
+                            </h2>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="p-4 border border-slate-100 bg-white rounded-xl shadow-xs space-y-1.5 relative overflow-hidden group">
+                                    <div class="absolute top-0 left-0 bottom-0 w-1 bg-emerald-600" id="canvasGoalBar1"></div>
+                                    <h3 id="previewGoal1Title" class="font-bold text-slate-900 text-xs">Goal Element Core Alpha Target Focus</h3>
+                                    <p id="previewGoal1Desc" class="text-slate-500 text-[11px] leading-relaxed">Milestone parameters contextual mapping frameworks target data blocks configurations...</p>
+                                </div>
+                                <div class="p-4 border border-slate-100 bg-white rounded-xl shadow-xs space-y-1.5 relative overflow-hidden group">
+                                    <div class="absolute top-0 left-0 bottom-0 w-1 bg-emerald-600" id="canvasGoalBar2"></div>
+                                    <h3 id="previewGoal2Title" class="font-bold text-slate-900 text-xs">Goal Element Core Beta Target Focus</h3>
+                                    <p id="previewGoal2Desc" class="text-slate-500 text-[11px] leading-relaxed">Milestone parameters contextual mapping frameworks target data blocks configurations...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PAGE BREAK LINE WRAPPER FOR HIGHER PAGE COUNTS - HELPS STABILIZE MULTIPAGE EXPORT DRIVERS -->
+                        <div class="page-break"></div>
+
+                        <!-- SECTION THREE: Materiality Matrix Matrix data map rows template block -->
+                        <div class="space-y-3 mt-4">
+                            <h2 class="text-sm font-extrabold text-slate-900 tracking-wide uppercase flex items-center gap-2">
+                                <i class="fa-solid fa-scale-balanced text-slate-400 text-xs"></i> 3. Materiality Matrix Priority Impact Assessment
+                            </h2>
+                            <div class="border border-slate-100 rounded-xl overflow-hidden shadow-xs">
+                                <table class="w-full border-collapse text-left text-[11px]">
+                                    <thead>
+                                        <tr class="bg-slate-50 border-b border-slate-100 text-slate-700 font-bold">
+                                            <th class="p-3">Core Assessment Sector Scope Pillar</th>
+                                            <th class="p-3 text-right">Identified Impact Status Level</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 text-slate-600">
+                                        <tr>
+                                            <td id="previewMat1Title" class="p-3 font-semibold text-slate-800">Operational Material Matrix Factor Pillar #1</td>
+                                            <td id="previewMat1Impact" class="p-3 text-right font-bold text-indigo-600">High Absolute Priority Focus</td>
+                                        </tr>
+                                        <tr>
+                                            <td id="previewMat2Title" class="p-3 font-semibold text-slate-800">Operational Material Matrix Factor Pillar #2</td>
+                                            <td id="previewMat2Impact" class="p-3 text-right font-bold text-indigo-600">Critical Material Alignment</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- SECTION FOUR: Social Human Capital Workplace Frameworks block -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <h3 class="text-[11px] font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i class="fa-solid fa-user-group-crown text-slate-400"></i> 4. Workplace Inclusion Metrics
+                                </h3>
+                                <p id="previewCsrDiversity" class="text-slate-500 text-[11px] leading-relaxed text-justify whitespace-pre-line bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+                                    Inclusion metrics statement tracking framework elements mapping structures context indices parameters context logs data fields buffers...
+                                </p>
+                            </div>
+                            <div class="space-y-2">
+                                <h3 class="text-[11px] font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i class="fa-solid fa-shield-heart text-slate-400"></i> 5. Health & Safety Systems
+                                </h3>
+                                <p id="previewCsrSafety" class="text-slate-500 text-[11px] leading-relaxed text-justify whitespace-pre-line bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+                                    Safety system enforcement parameters monitoring logs compliance tracking criteria arrays context maps attributes index metrics...
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- SECTION FIVE: Capitalization indicators and Green investment charts overview block -->
+                        <div class="space-y-3">
+                            <h2 class="text-sm font-extrabold text-slate-900 tracking-wide uppercase flex items-center gap-2">
+                                <i class="fa-solid fa-chart-line-up text-slate-400 text-xs"></i> 6. Capital Allocation & Sustainable Expenditure
+                            </h2>
+                            <div class="bg-slate-50 border border-slate-100 rounded-xl p-4 grid grid-cols-3 gap-4 items-center">
+                                <div class="space-y-0.5 text-center border-r border-slate-200/60">
+                                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Green CapEx</span>
+                                    <p id="previewFinCapEx" class="text-base font-black text-slate-900 font-mono">$0.00</p>
+                                </div>
+                                <div class="space-y-0.5 text-center border-r border-slate-200/60">
+                                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Carbon Mitigation</span>
+                                    <p id="previewFinCarbonMit" class="text-base font-black text-emerald-600 font-mono">$0.00</p>
+                                </div>
+                                <div class="space-y-0.5 text-left pl-2">
+                                    <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">Allocation Justification</span>
+                                    <p id="previewFinanceStatement" class="text-[10px] text-slate-500 leading-tight">Capital metrics tracking allocations mapped directly towards infrastructure updates loops...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION SIX: Unified Synthesized Master Narrative Framework Summary -->
+                        <div class="space-y-2 border-t border-slate-100 pt-4">
+                            <h2 class="text-sm font-extrabold text-slate-900 tracking-wide uppercase flex items-center gap-2">
+                                <i class="fa-solid fa-wand-magic-sparkles text-indigo-600 text-xs"></i> 7. Unified Executive Strategic Narrative Summary Framework
+                            </h2>
+                            <div class="p-4 bg-indigo-50/40 border border-indigo-100 rounded-xl">
+                                <p id="previewMasterNarrative" class="text-slate-700 font-normal leading-relaxed text-[11px] text-justify whitespace-pre-line italic">
+                                    Click the master compilation synthesis trigger action component in panel 5 to analyze aggregate values across this workspace context map layout...
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Layout Canvas Footer Element Stamp Block Information -->
+                    <div class="border-t border-slate-100 pt-4 flex justify-between items-center text-[9px] text-slate-400 font-semibold uppercase tracking-wider mt-6">
+                        <div>
+                            <span>Generated Framework: </span>
+                            <span id="footerCompanyName" class="text-slate-500">Nexus Logistics Corporation</span>
+                        </div>
+                        <div class="flex gap-1">
+                            <span>Classification: Confidential </span>
+                            <span>• Page 1 of 1</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- App System global workflow runtime script engine driver -->
+    <script>
+        // Tab Control System Switcher Logic
+        function switchTab(tabId) {
+            // Hide all tab views panels elements variables
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            // Remove selection indicators highlighting states attributes classes
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('text-indigo-600', 'bg-white', 'shadow-xs', 'border', 'border-slate-200/50');
+                btn.classList.add('text-slate-600', 'hover:bg-white/60');
+            });
+
+            // Make designated target tab layout container frame viewport visible
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            // Apply focus color state maps to trigger button switch
+            const activeBtn = document.getElementById(`btn-${tabId}`);
+            activeBtn.classList.remove('text-slate-600', 'hover:bg-white/60');
+            activeBtn.classList.add('text-indigo-600', 'bg-white', 'shadow-xs', 'border', 'border-slate-200/50');
+        }
+
+        // Color Palettes Control Presets Engine
+        function applyPresetPalette() {
+            const paletteSelection = document.getElementById('colorPalette').value;
+            const primaryColorPicker = document.getElementById('primaryColor');
+
+            const colorMaps = {
+                emerald: '#059669',
+                indigo: '#4f46e5',
+                teal: '#0d9488',
+                slate: '#475569'
+            };
+
+            if (colorMaps[paletteSelection]) {
+                primaryColorPicker.value = colorMaps[paletteSelection];
+                liveUpdatePreview();
+            }
+        }
+
+        // Live Mapping Synchronization Engine Core Loop
+        function liveUpdatePreview() {
+            // Input Fields Tracking Selectors Map
+            const inputs = {
+                companyName: 'previewCompanyName',
+                reportingYear: 'previewReportingYear',
+                ceoMessage: 'previewCeoMessage',
+                goal1Title: 'previewGoal1Title',
+                goal1Desc: 'previewGoal1Desc',
+                goal2Title: 'previewGoal2Title',
+                goal2Desc: 'previewGoal2Desc',
+                mat1Title: 'previewMat1Title',
+                mat1Impact: 'previewMat1Impact',
+                mat2Title: 'previewMat2Title',
+                mat2Impact: 'previewMat2Impact',
+                csrDiversity: 'previewCsrDiversity',
+                csrSafety: 'previewCsrSafety',
+                finCapEx: 'previewFinCapEx',
+                finCarbonMit: 'previewFinCarbonMit',
+                financeStatement: 'previewFinanceStatement',
+                masterNarrativeOutput: 'previewMasterNarrative'
+            };
+
+            // Loop through map updating inner text nodes values fields elements
+            for (const [inputId, previewId] of Object.entries(inputs)) {
+                const elementValue = document.getElementById(inputId).value;
+                const targetPreview = document.getElementById(previewId);
+                
+                if (elementValue && elementValue.trim() !== "") {
+                    targetPreview.innerText = elementValue;
+                } else {
+                    // Provide fallback contextual labels values if fields arrays buffers are empty strings
+                    if (inputId === 'companyName') targetPreview.innerText = "Nexus Logistics Corporation";
+                    if (inputId === 'reportingYear') targetPreview.innerText = "FY 2025 Annual";
+                }
+            }
+
+            // Sync second instance duplicate structural footer elements labels attributes tags
+            document.getElementById('footerCompanyName').innerText = document.getElementById('companyName').value || "Nexus Logistics Corporation";
+
+            // Apply color picker value maps elements targets lines layouts variables borders
+            const hexAccentColor = document.getElementById('primaryColor').value;
+            document.getElementById('canvasAccentBar').style.backgroundColor = hexAccentColor;
+            document.getElementById('previewCompanyName').style.color = hexAccentColor;
+            document.getElementById('canvasGoalBar1').style.backgroundColor = hexAccentColor;
+            document.getElementById('canvasGoalBar2').style.backgroundColor = hexAccentColor;
+
+            // Character counters computation routines loops updates
+            calculateFormMetricsSize();
+        }
+
+        // Form Metrics Character Data Size Scanner Counter
+        function calculateFormMetricsSize() {
+            let aggregateTextLength = 0;
+            const textFieldsToScan = ['ceoMessage', 'sustainKeywords', 'goal1Desc', 'goal2Desc', 'materialityKeywords', 'csrKeywords', 'csrDiversity', 'csrSafety', 'financeKeywords', 'financeStatement', 'masterNarrativeOutput'];
+            
+            textFieldsToScan.forEach(fieldId => {
+                aggregateTextLength += document.getElementById(fieldId).value.length;
+            });
+
+            document.getElementById('charCounter').innerText = `${aggregateTextLength.toLocaleString()} Characters Saved`;
+        }
+
+        // Mock Static Data Loader Context Engine 
+        function loadSampleData() {
+            document.getElementById('companyName').value = "GreenRoute Freight Solutions";
+            document.getElementById('industry').value = "Logistics & Freight Forwarding Transports";
+            document.getElementById('reportingYear').value = "FY 2026 ESG Overview";
+            document.getElementById('ceoMessage').value = "At GreenRoute Freight Solutions, we recognize that the future of transport logistics relies heavily on structural integration loops reduction frameworks. By building carbon tracking pipelines alongside fleet upgrade models, we drive direct savings parameters metrics while keeping corporate commitments intact.";
+            
+            document.getElementById('sustainKeywords').value = "Fleet electrification goals, renewable optimization grids arrays installation, absolute emission tracking lines setups";
+            document.getElementById('goal1Title').value = "45% Medium-Duty Fleet Transition";
+            document.getElementById('goal1Desc').value = "Accelerate active conversion cycles shifting older diesel freight assets into zero-emissions electric cargo engines structures pipelines lines.";
+            document.getElementById('goal2Title').value = "Smart Depot Energy Hubs";
+            document.getElementById('goal2Desc').value = "Deploying solar grid infrastructure arrays cross-connecting distributed sorting facilities with tracking parameters models monitors lines.";
+
+            document.getElementById('materialityKeywords').value = "Route micro-efficiencies optimizations schedules grids, cargo distribution loops emissions indexes, freight safety training compliance logs metrics";
+            document.getElementById('mat1Title').value = "Fleet Transition Fuel Sourcing Lifecycle";
+            document.getElementById('mat1Impact').value = "High Priority Material Axis Target";
+            document.getElementById('mat2Title').value = "Urban Transit Route Noise Disruption";
+            document.getElementById('mat2Impact').value = "Moderate Regulatory Risk Level Element";
+
+            document.getElementById('csrKeywords').value = "Continuous safety certifications training protocols tracking dashboards, regional economic engagement programs allocation frameworks";
+            document.getElementById('csrDiversity').value = "Implemented a target framework pipeline metrics increasing engineering team inclusivity to 40% parity, supporting collaborative technical bootcamps loops structures.";
+            document.getElementById('csrSafety').value = "Maintained zero incident metrics records tracking systems cross-checking field operations datasets alongside regular hazardous material simulation exercises.";
+
+            document.getElementById('financeKeywords').value = "Capitalization allocation tracking pipelines green logistics loops credits buys framework parameters models grids";
+            document.getElementById('finCapEx').value = "$142,000";
+            document.getElementById('finCarbonMit').value = "$38,500";
+            document.getElementById('financeStatement').value = "Capital structures allocations targeted strictly towards acquiring smart electric delivery models alongside retrofitting distribution logistics buildings Isolation loops setups parameters.";
+
+            document.getElementById('masterNarrativeOutput').value = "GreenRoute Freight Solutions confirms framework structure targets mapping operational data fields vectors safely across regional supply lines setups. Our multi-tiered logistics strategies reinforce carbon minimization targets while driving inclusion goals across all operating units safely.";
+
+            triggerToast("Mock SME Sample Dataset Loaded Successfully!");
+            liveUpdatePreview();
+        }
+
+        // Clear Form Engine UI Routine Reset Link
+        function clearForm() {
+            const clearIds = ['companyName', 'industry', 'reportingYear', 'ceoMessage', 'sustainKeywords', 'goal1Title', 'goal1Desc', 'goal2Title', 'goal2Desc', 'materialityKeywords', 'mat1Title', 'mat1Impact', 'mat2Title', 'mat2Impact', 'csrKeywords', 'csrDiversity', 'csrSafety', 'financeKeywords', 'finCapEx', 'finCarbonMit', 'financeStatement', 'masterNarrativeOutput'];
+            clearIds.forEach(id => document.getElementById(id).value = "");
+            triggerToast("Form Fields wiped out clean!");
+            liveUpdatePreview();
+        }
+
+        // Toast Toast Trigger Actions Driver Message Wrapper Layout
+        function triggerToast(msg, iconClass = "fa-solid fa-circle-info") {
+            const toastNode = document.getElementById('toast');
+            document.getElementById('toastMessage').innerText = msg;
+            document.getElementById('toastIcon').innerHTML = `<i class="${iconClass} text-sm"></i>`;
+            
+            toastNode.classList.remove('opacity-0', 'translate-y-[-20px]', 'pointer-events-none');
+            toastNode.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                toastNode.classList.remove('opacity-100', 'translate-y-0');
+                toastNode.classList.add('opacity-0', 'translate-y-[-20px]', 'pointer-events-none');
+            }, 4000);
+        }
+
+        // PDF Exporter Module Execution Pipeline Call
+        function exportToPDF() {
+            const targetCanvasElement = document.getElementById('reportCanvas');
+            const targetCompanyTitle = document.getElementById('companyName').value || "SME-ESG";
+            
+            triggerToast("Compiling PDF assets structure... Please hold", "fa-solid fa-spinner animate-spin");
+
+            const captureOptions = {
+                margin: 0,
+                filename: `${targetCompanyTitle.replace(/\s+/g, '_')}_Sustainability_Report.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().from(targetCanvasElement).set(captureOptions).save().then(() => {
+                triggerToast("Professional PDF Downloaded Successfully!", "fa-solid fa-file-check text-emerald-400");
+            });
+        }
+
+        // ==========================================
+        //  AI SYNTHESIZER LLM API ENGINE INTEGRATIONS
+        // ==========================================
+
+        async function executeGeminiRequest(promptString, targetFieldId) {
+            const apiKey = document.getElementById('geminiApiKey').value.trim();
+            if (!apiKey) {
+                triggerToast("Please input a valid Gemini API Key in the Profile Tab first!", "fa-solid fa-key text-rose-400");
+                switchTab('tab-profile');
+                return;
+            }
+
+            triggerToast("Connecting Gemini Synth Engine...", "fa-solid fa-wand-magic-sparkles animate-pulse");
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+            const payloadData = {
+                contents: [{
+                    parts: [{
+                        text: promptString
+                    }]
+                }],
+                generationConfig: {
+                    temperature: 0.3,
+                    maxOutputTokens: 800
+                }
+            };
+
+            try {
+                const networkResponse = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payloadData)
+                });
+
+                if (!networkResponse.ok) {
+                    throw new Error(`API Gateway Returned Status Connection Flag Error: ${networkResponse.status}`);
+                }
+
+                const dataJsonParsed = await networkResponse.json();
+                const textOutputBuffer = dataJsonParsed.candidates[0].content.parts[0].text;
+                
+                // Clean markdown structural formatting backticks if injected by model response loops
+                const polishedTextOutput = textOutputBuffer.replace(/```html|
+```|###|##|\*\*|^\s*-\s*/g, '').trim();
+                
+                document.getElementById(targetFieldId).value = polishedTextOutput;
+                liveUpdatePreview();
+                triggerToast("Synthesis Generated Successfully!");
+
+            } catch (err) {
+                console.error(err);
+                triggerToast(`Synthesis Fault Line Encountered: ${err.message}`, "fa-solid fa-triangle-exclamation text-rose-500");
+            }
+        }
+
+        // FUNCTION 1: Sustainability Goals Builder Pipeline Connection Agent
+        function generateAIGoals() {
+            const name = document.getElementById('companyName').value || "Our Company";
+            const keywords = document.getElementById('sustainKeywords').value;
+
+            if (!keywords || keywords.trim() === "") {
+                triggerToast("Please input raw base keywords context data first!", "fa-solid fa-input-text");
+                return;
+            }
+
+            // Construct specific isolated prompts for discrete field targeting arrays elements
+            const promptTitle1 = `Based on these keywords: "${keywords}", create a short professional 3-5 word title for an ESG target goal #1 for ${name}. Return ONLY the title text.`;
+            const promptDesc1 = `Based on these keywords: "${keywords}", write a single-sentence descriptive action milestone mapping target objective goal #1 for ${name}. Avoid markdown tags.`;
+            
+            const promptTitle2 = `Based on these keywords: "${keywords}", create a short professional 3-5 word title for an ESG target goal #2 for ${name}. Return ONLY the title text.`;
+            const promptDesc2 = `Based on these keywords: "${keywords}", write a single-sentence descriptive action milestone mapping target objective goal #2 for ${name}. Avoid markdown tags.`;
+
+            executeGeminiRequest(promptTitle1, 'goal1Title').then(() => {
+                executeGeminiRequest(promptDesc1, 'goal1Desc').then(() => {
+                    executeGeminiRequest(promptTitle2, 'goal2Title').then(() => {
+                        executeGeminiRequest(promptDesc2, 'goal2Desc');
+                    });
+                });
+            });
+        }
+
+        // FUNCTION 2: Materiality Matrix Priority Impact Assessment Generator Block Agent
+        function generateAIMateriality() {
+            const name = document.getElementById('companyName').value || "Our Company";
+            const keywords = document.getElementById('materialityKeywords').value;
+
+            if (!keywords || keywords.trim() === "") {
+                triggerToast("Please input raw stakeholder concerns data first!", "fa-solid fa-input-text");
+                return;
+            }
+
+            const promptTitle1 = `Based on: "${keywords}", extract one distinct key sustainability pillar area of high focus priority for ${name}. Return ONLY the 3-5 word title name text.`;
+            const promptImpact1 = `Assign a professional classification level context (e.g., "High Strategic Focus Impact" or "Critical Matrix Alignment Area") based on "${keywords}". Return ONLY the status phrase text.`;
+            
+            const promptTitle2 = `Based on: "${keywords}", extract a second distinct key compliance or environmental focus pillar for ${name}. Return ONLY the 3-5 word title name text.`;
+            const promptImpact2 = `Assign a professional priority impact classification level context string based on "${keywords}". Return ONLY the status phrase text.`;
+
+            executeGeminiRequest(promptTitle1, 'mat1Title').then(() => {
+                executeGeminiRequest(promptImpact1, 'mat1Impact').then(() => {
+                    executeGeminiRequest(promptTitle2, 'mat2Title').then(() => {
+                        executeGeminiRequest(promptImpact2, 'mat2Impact');
+                    });
+                });
+            });
+        }
+
+        // FUNCTION 3: CSR & Human Capital Synthesis Data Fields Loader Agent Connection Link
+        function generateAICsr() {
+            const name = document.getElementById('companyName').value || "Our Company";
+            const keywords = document.getElementById('csrKeywords').value;
+
+            if (!keywords || keywords.trim() === "") {
+                triggerToast("Please input raw social workforce operational notes first!", "fa-solid fa-input-text");
+                return;
+            }
+
+            const promptDiv = `Based on notes: "${keywords}", formulate a clear 2-sentence summary paragraph details describing ${name}'s workplace diversity inclusion frameworks track records metrics. Do not include headers or markdown.`;
+            const promptSafe = `Based on notes: "${keywords}", formulate a concise 2-sentence occupational health safety protocol summary tracking statement context logs for ${name}. Do not include headers or markdown.`;
+
+            executeGeminiRequest(promptDiv, 'csrDiversity').then(() => {
+                executeGeminiRequest(promptSafe, 'csrSafety');
+            });
+        }
+
+        // FUNCTION 4: Sustainable Green Finance Allocation Narrative Driver Connector Block 
+        function generateAIFinance() {
+            const keywords = document.getElementById('financeKeywords').value;
+
+            if (!keywords || keywords.trim() === "") {
+                triggerToast("Please input raw financial context data allocations notes first!");
+                return;
+            }
+
+            const promptStat = `Based on notes: "${keywords}", construct a 2-sentence formal corporate narrative financial tracking statement explaining capital expenditures targeting green mitigation logistics infrastructure upgrades loops. Avoid markdown bolding styles or headers.`;
+            executeGeminiRequest(promptStat, 'financeStatement');
+        }
+
+        // FUNCTION 5: Master Framework Synthesizer Compiler Master Logic Routine Agent
+        function generateAINarrative() {
+            // Aggregate values from all input vectors across previous screens datasets
+            const name = document.getElementById('companyName').value || "Our Company";
+            const ind = document.getElementById('industry').value || "SME Sector";
+            const g1 = document.getElementById('goal1Title').value || "Emission Targets";
+            const m1 = document.getElementById('mat1Title').value || "Supply Line Efficiency Matrix";
+            const div = document.getElementById('csrDiversity').value || "Workforce Optimization Initiatives";
+            const fin = document.getElementById('financeStatement').value || "Green Capital Allocation Infrastructure Assets Buys";
+
+            const compilationPrompt = `You are a professional ESG auditor. Synthesize a unified, authoritative 3-4 sentence Strategic Executive Summary Master Narrative Statement for ${name}, a company operating within the ${ind} sector. 
+
+            Synthesize this cohesive paragraph smoothly incorporating these baseline data components established across our reporting framework modules context tracking indices fields structures:
+            - Environmental Target Core Focus: ${g1}
+            - High Level Materiality Priority Pivot: ${m1}
+            - Social Inclusion Standard Metric: ${div}
+            - Capital Investment Allocation Blueprint Vector: ${fin}
+
+            Ensure the text reads as a continuous, elegant, publication-ready strategic narrative overview statement without any subheaders, bullet points, asterisks, or markdown block tags.`;
+
+            executeGeminiRequest(compilationPrompt, 'masterNarrativeOutput');
+        }
+
+        // Initial setup run configurations loop trigger elements links hooks maps
+        window.onload = function() {
+            liveUpdatePreview();
+        };
+    </script>
+</body>
+</html>
