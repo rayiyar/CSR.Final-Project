@@ -2108,13 +2108,13 @@
             const goalsPolicyText = document.getElementById('goalsPolicyText');
             if (goalsPolicyText) {
                 goalsPolicyText.innerHTML = `
-                    <p class="italic text-slate-500 font-sans font-sans">Preset goals loaded. Click "Expand Keywords to AI Vision Statement" to generate the expanded formal policy statement passages in this report block.</p>
+                    <p class="italic text-slate-500 font-sans">Preset goals loaded. Click "Expand Keywords to AI Vision Statement" to generate the expanded formal policy statement passages in this report block.</p>
                 `;
             }
             const materialityNarrativeContent = document.getElementById('materialityNarrativeContent');
             if (materialityNarrativeContent) {
                 materialityNarrativeContent.innerHTML = `
-                    <p class="italic text-slate-500 font-sans font-sans">Preset materiality assessment loaded. Click "Synthesize Materiality Narrative" to generate formal stakeholder engagement passages.</p>
+                    <p class="italic text-slate-500 font-sans">Preset materiality assessment loaded. Click "Synthesize Materiality Narrative" to generate formal stakeholder engagement passages.</p>
                 `;
             }
             const csrPolicyText = document.getElementById('csrPolicyText');
@@ -2153,20 +2153,18 @@
             });
         }
 
-        // Free and Open-Source Zero-API-Key Text Generation Proxy (Pollinations.ai)
-        async function fetchOpenSourceLLM(systemInstruction, userQuery) {
-            // Updated to secure plain-text Pollinations endpoint
-            const apiUrl = "https://text.pollinations.ai/";
+        async function fetchGeminiGroundedLLM(systemInstruction, userQuery) {
+            const apiKey = ""; // Left empty so Canvas can inject it at runtime
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
             const payload = {
-                messages: [
-                    { role: "system", content: systemInstruction },
-                    { role: "user", content: userQuery }
-                ],
-                model: "openai", // Highly reliable open-source routing default
-                temperature: 0.3
+                contents: [{ role: "user", parts: [{ text: userQuery }] }],
+                tools: [{ "google_search": {} }], // Realtime Google Search Grounding enabled!
+                systemInstruction: {
+                    parts: [{ text: systemInstruction }]
+                }
             };
 
-            // Implement simple retry with exponential backoff
             let delay = 1000;
             for (let attempt = 0; attempt < 3; attempt++) {
                 try {
@@ -2176,23 +2174,74 @@
                         body: JSON.stringify(payload)
                     });
 
-                    if (response.ok) {
-                        // FIX: Pollinations.ai returns raw markdown text response on POST, NOT wrapped JSON.
-                        const text = await response.text();
-                        if (text && text.trim() !== "") {
-                            return text;
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    const candidate = result.candidates?.[0];
+                    if (candidate && candidate.content?.parts?.[0]?.text) {
+                        const text = candidate.content.parts[0].text;
+                        
+                        // Extract Grounding Citations
+                        let sources = [];
+                        const groundingMetadata = candidate.groundingMetadata;
+                        if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                            sources = groundingMetadata.groundingAttributions
+                                .map(attr => ({
+                                    uri: attr.web?.uri,
+                                    title: attr.web?.title,
+                                }))
+                                .filter(src => src.uri && src.title);
                         }
+                        return { text, sources };
                     }
                 } catch (err) {
-                    console.debug(`API Attempt ${attempt + 1} Failed, retrying in ${delay}ms...`);
+                    console.warn(`Gemini Grounded API Attempt ${attempt + 1} Failed, retrying in ${delay}ms...`, err);
                 }
                 await new Promise(resolve => setTimeout(resolve, delay));
                 delay *= 2;
             }
-            throw new Error("Unable to complete open source LLM synthesis after multiple attempts.");
+            throw new Error("Unable to complete search-grounded text synthesis after multiple attempts.");
         }
 
-        // Open Source Goal Passage Synthesizer
+        function renderGroundedOutput(divElement, resultData) {
+            const { text, sources } = resultData;
+            let paragraphs = text.split('\n\n').filter(p => p.trim() !== "");
+            let htmlOutput = "";
+            
+            paragraphs.forEach(p => {
+                // If it looks like a heading or markdown list, convert basic styling
+                if (p.startsWith('#') || p.startsWith('**') || p.startsWith('-')) {
+                    const formatted = p.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                       .replace(/^-\s+/gm, '• ');
+                    htmlOutput += `<p class="leading-relaxed mb-3 text-justify text-slate-700 font-sans">${formatted}</p>`;
+                } else {
+                    htmlOutput += `<p class="leading-relaxed mb-3 text-justify text-slate-700 font-sans">${p}</p>`;
+                }
+            });
+
+            // If we have live citations, show them elegantly
+            if (sources && sources.length > 0) {
+                // Deduplicate sources by URI
+                const uniqueSources = Array.from(new Set(sources.map(s => s.uri)))
+                    .map(uri => sources.find(s => s.uri === uri));
+
+                htmlOutput += `
+                    <div class="mt-4 pt-3 border-t border-slate-150 text-[10px] text-slate-500 font-sans no-print">
+                        <p class="font-bold text-indigo-700 mb-1 flex items-center gap-1">
+                            🌍 Verified Live Grounding Citations:
+                        </p>
+                        <ul class="list-disc list-inside space-y-1">
+                `;
+                uniqueSources.slice(0, 4).forEach(s => {
+                    htmlOutput += `<li><a href="${s.uri}" target="_blank" class="text-indigo-600 hover:underline font-medium">${s.title}</a></li>`;
+                });
+                htmlOutput += `</ul></div>`;
+            }
+            divElement.innerHTML = htmlOutput;
+        }
+
         async function generateAIGoals() {
             const btn = document.getElementById('aiGoalsBtn');
             const btnText = document.getElementById('aiGoalsBtnText');
@@ -2201,6 +2250,7 @@
 
             const keywords = document.getElementById('sustainKeywords').value;
             const name = document.getElementById('companyName').value || "Our Firm";
+            const industry = document.getElementById('industry').value;
 
             if (!keywords || keywords.trim() === "") {
                 triggerToast("Please input or load keywords first!");
@@ -2208,7 +2258,7 @@
             }
 
             btn.disabled = true;
-            btnText.innerText = "Expanding Goals...";
+            btnText.innerText = "Expanding Grounded Goals...";
             spinner.classList.remove('hidden');
             goalsDiv.innerHTML = `
                 <div class="flex items-center gap-2 py-4 justify-center font-sans">
@@ -2216,22 +2266,17 @@
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span class="text-xs text-indigo-600 font-bold animate-pulse">Expanding goals via Open Source Llama 3...</span>
+                    <span class="text-xs text-indigo-600 font-bold animate-pulse">Expanding goals via Grounded Gemini 3...</span>
                 </div>
             `;
 
-            const systemPrompt = "Act as a leading corporate sustainability policy director. Expand the provided short keywords or values phrases into a beautifully formulated, official corporate sustainability vision, mission, and core values statement (aligned with GRI 2 Strategy guidelines). Integrate current sustainability trends such as carbon neutrality, green material sourcing, and localized circular economy structures. Avoid placeholder text. Provide the text clean and ready for direct report publishing without AI-generation mentions.";
-            const userPrompt = `Company Name: ${name}\nVision & Values Keywords: ${keywords}\n\nFormulate the official corporate vision and values statement now:`;
+            const systemPrompt = "Act as a leading corporate sustainability policy director. Use real-time Google search to identify the most critical 2026 ESG news, trends, and framework requirements (like ISSB or CSRD alignment) relative to the provided industry sector. Expand the provided short keywords into a beautifully formulated corporate sustainability vision, mission, and core values statement. Direct connection with 2026 sector updates is required. Provide clean text without AI metadata or conversational introductions.";
+            const userPrompt = `Company Name: ${name}\nSector/Industry: ${industry}\nVision & Values Keywords: ${keywords}\n\nSearch live rules and formulate the grounded official vision and values statement:`;
 
             try {
-                const text = await fetchOpenSourceLLM(systemPrompt, userPrompt);
-                let paragraphs = text.split('\n\n').filter(p => p.trim() !== "");
-                let htmlOutput = "";
-                paragraphs.forEach(p => {
-                    htmlOutput += `<p class="leading-relaxed mb-3 text-justify text-slate-700 font-sans">${p}</p>`;
-                });
-                goalsDiv.innerHTML = htmlOutput;
-                triggerToast("Vision Statement synthesized!");
+                const result = await fetchGeminiGroundedLLM(systemPrompt, userPrompt);
+                renderGroundedOutput(goalsDiv, result);
+                triggerToast("Vision Statement grounded & synthesized!");
             } catch (err) {
                 goalsDiv.innerHTML = `<p class="text-rose-600 font-sans">Failed to expand goals. Please try again.</p>`;
                 triggerToast("AI Goals generation failed.");
@@ -2242,7 +2287,6 @@
             }
         }
 
-        // Open Source Materiality Process Narrative Synthesizer
         async function generateAIMateriality() {
             const btn = document.getElementById('aiMaterialityBtn');
             const btnText = document.getElementById('aiMaterialityBtnText');
@@ -2259,7 +2303,7 @@
             }
 
             btn.disabled = true;
-            btnText.innerText = "Synthesizing...";
+            btnText.innerText = "Grounding Materiality Process...";
             spinner.classList.remove('hidden');
             matDiv.innerHTML = `
                 <div class="flex items-center gap-2 py-4 justify-center font-sans">
@@ -2267,24 +2311,19 @@
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span class="text-xs text-indigo-600 font-bold animate-pulse">Running Open Source Materiality analysis...</span>
+                    <span class="text-xs text-indigo-600 font-bold animate-pulse">Running grounded double-materiality audit...</span>
                 </div>
             `;
 
-            const systemPrompt = "Act as an ESG consultant specializing in GRI 3: Material Topics standard. Craft a coherent materiality assessment statement explaining how the SME conducts stakeholder mapping and determines double materiality (combining business survival risk and outward environmental impact). Align with current sustainability trends (such as supply chain resilience and ESG transparency). Use professional, authoritative corporate terminology. Avoid placeholder text. Provide the text clean and ready for direct report publishing without AI-generation mentions.";
-            const userPrompt = `Company Name: ${name}\nSector: ${industry}\nMateriality Process/Feedback Keywords: ${keywords}\n\nGenerate the official GRI 3 disclosure narrative:`;
+            const systemPrompt = "Act as an ESG consultant specializing in GRI 3: Material Topics standard. Use Google search to research standard double-materiality priorities and sectoral risk guidelines updated for 2026. Align stakeholder priorities and the business's raw materiality process keywords directly with verified ESG news, carbon tax adjustments, or supply chain regulations. Avoid template text. Output clean corporate prose ready for report publishing.";
+            const userPrompt = `Company Name: ${name}\nSector: ${industry}\nMateriality Keywords/Process: ${keywords}\n\nSearch and generate the official grounded GRI 3 materiality analysis disclosure:`;
 
             try {
-                const text = await fetchOpenSourceLLM(systemPrompt, userPrompt);
-                let paragraphs = text.split('\n\n').filter(p => p.trim() !== "");
-                let htmlOutput = "";
-                paragraphs.forEach(p => {
-                    htmlOutput += `<p class="leading-relaxed mb-3 text-justify text-slate-700 font-serif">${p}</p>`;
-                });
-                matDiv.innerHTML = htmlOutput;
-                triggerToast("Materiality narrative synthesized!");
+                const result = await fetchGeminiGroundedLLM(systemPrompt, userPrompt);
+                renderGroundedOutput(matDiv, result);
+                triggerToast("Materiality narrative grounded!");
             } catch (err) {
-                matDiv.innerHTML = `<p class="text-rose-600 font-sans">Failed to expand narrative. Please try again.</p>`;
+                matDiv.innerHTML = `<p class="text-rose-600 font-sans">Failed to expand materiality narrative. Please try again.</p>`;
                 triggerToast("AI Materiality generation failed.");
             } finally {
                 btn.disabled = false;
@@ -2293,7 +2332,6 @@
             }
         }
 
-        // Open Source CSR Achievements Synthesizer
         async function generateAICSR() {
             const btn = document.getElementById('aiCsrBtn');
             const btnText = document.getElementById('aiCsrBtnText');
@@ -2310,7 +2348,7 @@
             }
 
             if (btn) btn.disabled = true;
-            if (btnText) btnText.innerText = "Synthesizing CSR...";
+            if (btnText) btnText.innerText = "Synthesizing Grounded CSR...";
             if (spinner) spinner.classList.remove('hidden');
 
             csrDiv.innerHTML = `
@@ -2319,22 +2357,17 @@
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span class="text-xs text-rose-600 font-bold animate-pulse">Running Open Source community audit...</span>
+                    <span class="text-xs text-rose-600 font-bold animate-pulse">Searching global CSRD/social indicators standards...</span>
                 </div>
             `;
 
-            const systemPrompt = "Act as a global Corporate Social Responsibility (CSR) expert. Expand the provided keywords into a comprehensive corporate social responsibility disclosure statement. Frame volunteer efforts, local hiring, and community programs as strategic initiatives in accordance with GRI 413: Local Communities and GRI 203: Indirect Economic Impacts guidelines. Weave in current trends like localized supply chains and just community transition values. Avoid generic placeholders. Provide the text clean and ready for direct report publishing without AI-generation mentions.";
-            const userPrompt = `Company Name: ${name}\nIndustry: ${industry}\nCSR Initiatives & Indirect Achievements (Keywords): ${keywords}\n\nGenerate the official GRI 413 CSR achievements narrative:`;
+            const systemPrompt = "Act as a global corporate social responsibility (CSR) expert. Query current ESG developments (updated to 2026) regarding GRI 413 (local communities) and GRI 203 (indirect economic impacts). Synthesize the user's local achievements and philanthropy with standard CSR requirements and contemporary social responsibility expectations. Provide clean, professional prose ready for the final report.";
+            const userPrompt = `Company Name: ${name}\nIndustry: ${industry}\nCSR Initiatives & Keywords: ${keywords}\n\nPerform a grounded search and write the GRI 413 Social Stewardship statement:`;
 
             try {
-                const text = await fetchOpenSourceLLM(systemPrompt, userPrompt);
-                let paragraphs = text.split('\n\n').filter(p => p.trim() !== "");
-                let htmlOutput = "";
-                paragraphs.forEach(p => {
-                    htmlOutput += `<p class="leading-relaxed mb-3 text-justify text-slate-700 font-sans">${p}</p>`;
-                });
-                csrDiv.innerHTML = htmlOutput;
-                triggerToast("CSR achievements narrative synthesized!");
+                const result = await fetchGeminiGroundedLLM(systemPrompt, userPrompt);
+                renderGroundedOutput(csrDiv, result);
+                triggerToast("CSR achievements grounded & compiled!");
             } catch (err) {
                 csrDiv.innerHTML = `<p class="text-rose-600 font-sans">Failed to expand CSR narrative. Please try again.</p>`;
                 triggerToast("AI CSR generation failed.");
@@ -2345,7 +2378,6 @@
             }
         }
 
-        // Open Source Financial performance & leverage bankability narrator
         async function generateAIFinance() {
             const btn = document.getElementById('aiFinanceBtn');
             const btnText = document.getElementById('aiFinanceBtnText');
@@ -2365,32 +2397,27 @@
             }
 
             btn.disabled = true;
-            btnText.innerText = "Underwriting Analysis...";
+            btnText.innerText = "Grounding Credit Context...";
             spinner.classList.remove('hidden');
             financeDiv.innerHTML = `
-                <div class="flex items-center gap-2 py-4 justify-center font-sans font-sans">
+                <div class="flex items-center gap-2 py-4 justify-center font-sans">
                     <svg class="animate-spin h-3.5 w-3.5 text-indigo-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span class="text-xs text-indigo-600 font-bold animate-pulse">Analyzing credit risk against sustainability indices...</span>
+                    <span class="text-xs text-indigo-600 font-bold animate-pulse">Grounding green asset lending underwriting criteria...</span>
                 </div>
             `;
 
-            const systemPrompt = "Act as an elite Commercial Bank Underwriter and Sustainability Financing specialist. Analyze the provided company asset values, operational profitability (EBITDA), and debt status, alongside their sustainability capital keywords. Write a highly persuasive, 3-paragraph commercial proposal justifying why this company represents a prime candidate for premium credit leverage (such as Sustainability-Linked Loans or Green Commercial Credit lines). Frame their sustainability metrics as a major mitigant for credit risk, aligning with standard green finance taxonomy. Speak with professional, rigorous financial confidence. Avoid placeholder text. Provide the text clean and ready for direct report publishing without AI-generation mentions.";
-            const userPrompt = `Company: ${name}\nTotal Assets: $${totalAssets}\nTotal Liabilities: $${totalLiabilities}\nEBITDA: $${ebitda}\nRevenue: $${revenue}\nLeverage Intent Goals: ${keywords}\n\nGenerate the executive credit underwriting and bankability report now:`;
+            const systemPrompt = "Act as an elite commercial banker and green finance taxonomy underwriter. Use Google search to cross-reference current 2026 sustainability-linked credit guidelines and transition finance criteria. Write a professional credit underwriting context justifying how the user's capital leverage intentions (such as solar or fleet electrification) combined with their financials mitigate credit risk and represent an ideal green leverage candidate. Avoid generic placeholders.";
+            const userPrompt = `Company: ${name}\nTotal Assets: $${totalAssets}\nTotal Liabilities: $${totalLiabilities}\nEBITDA: $${ebitda}\nRevenue: $${revenue}\nGreen Capital Goals: ${keywords}\n\nSearch and output the grounded bankability credit evaluation:`;
 
             try {
-                const text = await fetchOpenSourceLLM(systemPrompt, userPrompt);
-                let paragraphs = text.split('\n\n').filter(p => p.trim() !== "");
-                let htmlOutput = "";
-                paragraphs.forEach(p => {
-                    htmlOutput += `<p class="leading-relaxed mb-3 text-justify text-slate-700 font-sans font-sans font-sans">${p}</p>`;
-                });
-                financeDiv.innerHTML = htmlOutput;
-                triggerToast("Creditworthiness analysis synthesized!");
+                const result = await fetchGeminiGroundedLLM(systemPrompt, userPrompt);
+                renderGroundedOutput(financeDiv, result);
+                triggerToast("Credit underwriting analysis compiled!");
             } catch (err) {
-                financeDiv.innerHTML = `<p class="text-rose-600 font-sans font-sans">Failed to compile credit analysis. Please try again.</p>`;
+                financeDiv.innerHTML = `<p class="text-rose-600 font-sans">Failed to compile credit analysis. Please try again.</p>`;
                 triggerToast("AI Finance generation failed.");
             } finally {
                 btn.disabled = false;
@@ -2399,7 +2426,6 @@
             }
         }
 
-        // Open Source master report compiler
         async function generateAINarrative() {
             const btn = document.getElementById('aiGenerateBtn');
             const btnText = document.getElementById('aiBtnText');
@@ -2472,30 +2498,25 @@
 
             // Set UI to loading state
             btn.disabled = true;
-            btnText.innerText = "Synthesizing Analysis...";
+            btnText.innerText = "Grounding Master Disclosure...";
             spinner.classList.remove('hidden');
             contentDiv.innerHTML = `
-                <div class="flex flex-col items-center justify-center py-6 gap-3 font-sans font-sans">
+                <div class="flex flex-col items-center justify-center py-6 gap-3 font-sans">
                     <svg class="animate-spin h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <p class="text-xs text-indigo-600 font-bold animate-pulse">Running advanced material audits via Open Source Llama 3...</p>
+                    <p class="text-xs text-indigo-600 font-bold animate-pulse">Running advanced 2026 materiality & news cross-reference query...</p>
                 </div>
             `;
 
-            const systemPrompt = "Act as an elite global corporate sustainability disclosure officer. Analyze the quantitative metrics and corporate profile of the SME provided. Write a professional, highly grounded 3-paragraph executive narrative explaining their environmental footprint (waste, carbon), social indicators (turnover, OHS safety), and risk posture relative to their industry sector benchmarks. Cite specific active GRI disclosures referenced in the data. Frame the analysis utilizing current ESG themes (decarbonization, mental wellness, circular economy, and community economic resilience). Speak with authoritative confidence. The tone should be completely ready-to-publish, so the firm can directly export this without edits. Avoid any references to AI generation.";
-            const userPrompt = `Here is our company operational profile and quantitative datasets for this reporting cycle:\n\n${dataSummary}`;
+            const systemPrompt = "Act as an elite corporate sustainability compliance officer. Use Google search to find the latest 2026 news on corporate sustainability policies, climate action regulations, and general GRI framework expectations tailored to this company's business sector. Analyze the provided operational values and quantitative metrics. Synthesize a professional, comprehensive 3-paragraph executive narrative grounded in these live standard disclosures and sectoral news. Output clean corporate text.";
+            const userPrompt = `Operational metrics, profiles, and conversions for this cycle:\n\n${dataSummary}\n\nPerform search grounding and compile the Grounded GRI Executive Disclosure Summary:`;
 
             try {
-                const text = await fetchOpenSourceLLM(systemPrompt, userPrompt);
-                let paragraphs = text.split('\n\n').filter(p => p.trim() !== "");
-                let htmlOutput = "";
-                paragraphs.forEach(p => {
-                    htmlOutput += `<p class="leading-relaxed mb-3 text-justify text-slate-700 font-sans">${p}</p>`;
-                });
-                contentDiv.innerHTML = htmlOutput;
-                triggerToast("Narrative compiled successfully!");
+                const result = await fetchGeminiGroundedLLM(systemPrompt, userPrompt);
+                renderGroundedOutput(contentDiv, result);
+                triggerToast("Grounded executive narrative compiled!");
             } catch (err) {
                 contentDiv.innerHTML = `
                     <p class="text-rose-600 font-bold font-sans">Failed to complete AI synthesis. Please check your network connection and try again.</p>
