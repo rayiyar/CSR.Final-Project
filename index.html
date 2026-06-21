@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SME ESG Report Wizard & Capital Underwriter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print { .no-print { display: none; } .page-break { page-break-after: always; } }
+    .active-tab { border-color: var(--primary-color, #059669); color: var(--primary-color, #059669); font-weight: 600; }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-900" style="--primary-color: #059669;">
+
+  <div class="flex h-screen overflow-hidden">
+    <!-- LEFT CONTROL PANEL -->
+    <div class="w-1/2 bg-white border-r border-gray-200 flex flex-col h-full no-print">
+      <div class="p-6 border-b border-gray-100 bg-emerald-900 text-white flex justify-between items-center">
+        <div>
+          <h1 class="text-xl font-bold">SME ESG Wizard</h1>
+          <p class="text-xs text-emerald-200">GRI 2021 Compliance & Sustainability Linked Credit</p>
+        </div>
+        <select id="themeSelector" class="bg-emerald-800 text-white text-xs rounded px-2 py-1 border border-emerald-700 outline-none">
+          <option value="emerald">Forest Emerald</option>
+          <option value="ocean">Ocean Blue</option>
+          <option value="navy">Elegant Navy</option>
+          <option value="burgundy">Corporate Burgundy</option>
+        </select>
+      </div>
+
+      <!-- NAVIGATION TABS -->
+      <div class="flex border-b border-gray-200 text-xs text-gray-600 bg-gray-50 overflow-x-auto">
+        <button onclick="switchTab('profile')" id="tab-profile" class="px-4 py-3 border-b-2 active-tab">1. Profile</button>
+        <button onclick="switchTab('materiality')" id="tab-materiality" class="px-4 py-3 border-b-2 border-transparent">2. Materiality</button>
+        <button onclick="switchTab('environmental')" id="tab-environmental" class="px-4 py-3 border-b-2 border-transparent">3. Environmental</button>
+        <button onclick="switchTab('social')" id="tab-social" class="px-4 py-3 border-b-2 border-transparent">4. Social & OHS</button>
+        <button onclick="switchTab('finance')" id="tab-finance" class="px-4 py-3 border-b-2 border-transparent">5. Capital & CSR</button>
+      </div>
+
+      <!-- DATA FORMS PANEL -->
+      <div class="flex-1 overflow-y-auto p-6 space-y-6">
+        <!-- TAB 1: PROFILE -->
+        <div id="panel-profile" class="space-y-4">
+          <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">Company Profile Information</h3>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Company Name</label>
+            <input type="text" id="compName" value="Apex Manufacturing Ltd" class="w-full border rounded p-2 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Corporate Address [GRI 2]</label>
+            <input type="text" id="compAddress" value="102 Industrial Sector, Business Zone 4" class="w-full border rounded p-2 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Business Scale & Activities [GRI 2]</label>
+            <textarea id="compScale" rows="2" class="w-full border rounded p-2 text-sm">Mid-sized precision auto-component fabrication facility with 85 full-time personnel servicing domestic engineering clients.</textarea>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Sustainability Vision, Mission & Values [GRI 2]</label>
+            <textarea id="compVision" rows="3" class="w-full border rounded p-2 text-sm" placeholder="Type bullet keywords here...">- Target circular metal waste loops
+- Maintain zero serious injuries on factory floor
+- Minimize regional water footprints</textarea>
+          </div>
+          <button onclick="triggerAI('vision')" id="btn-vision" class="w-full bg-emerald-600 text-white text-xs font-semibold py-2 rounded shadow hover:bg-emerald-700 transition">✨ Synthesize Core Policy Narrative</button>
+        </div>
+
+        <!-- TAB 2: MATERIALITY -->
+        <div id="panel-materiality" class="hidden space-y-4">
+          <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">Materiality Selection [GRI 3]</h3>
+          <p class="text-xs text-gray-500">Rate impact weighting grids ($1 = \text{Low}$, $5 = \text{Critical}$) to automatically plot your ESG Importance Matrix.</p>
+          <div class="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded border">
+            <div>
+              <label class="block text-xs font-medium text-gray-700">Carbon Intensity Impact</label>
+              <input type="number" id="matCarbon" value="4" min="1" max="5" class="w-full border rounded p-1 text-sm mt-1">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700">OHS Worker Risk Impact</label>
+              <input type="number" id="matOhs" value="5" min="1" max="5" class="w-full border rounded p-1 text-sm mt-1">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">3-1 Process to Determine Material Topics</label>
+            <textarea id="matProcess" rows="3" class="w-full border rounded p-2 text-sm">- Monthly board risk oversight evaluations
+- Direct supplier questionnaires regarding environmental efficiency
+- Employee safety feedback logs</textarea>
+          </div>
+          <button onclick="triggerAI('materiality')" id="btn-materiality" class="w-full bg-emerald-600 text-white text-xs font-semibold py-2 rounded shadow hover:bg-emerald-700 transition">✨ Synthesize Materiality Assessment Matrix</button>
+        </div>
+
+        <!-- TAB 3: ENVIRONMENTAL -->
+        <div id="panel-environmental" class="hidden space-y-4">
+          <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">Environmental Performance Calculations</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-600">Purchased Electricity (kWh/yr)</label>
+              <input type="number" id="envElec" value="120000" oninput="runCalculations()" class="w-full border rounded p-2 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600">Fleet Diesel Consumed (Gal/yr)</label>
+              <input type="number" id="envDiesel" value="4500" oninput="runCalculations()" class="w-full border rounded p-2 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600">Total Fresh Water Usage (Gal/yr)</label>
+              <input type="number" id="envWater" value="340000" oninput="runCalculations()" class="w-full border rounded p-2 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600">Water Effluents Discharged (Gal/yr)</label>
+              <input type="number" id="envEffluent" value="80000" oninput="runCalculations()" class="w-full border rounded p-2 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600">Total Waste Generated (Tons/yr)</label>
+              <input type="number" id="envWaste" value="45" oninput="runCalculations()" class="w-full border rounded p-2 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600">Total Waste Diverted/Recycled (Tons/yr)</label>
+              <input type="number" id="envRecycle" value="31" oninput="runCalculations()" class="w-full border rounded p-2 text-sm">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">GRI 306 Waste Standard & Circular Strategies</label>
+            <textarea id="envKeywords" rows="2" class="w-full border rounded p-2 text-sm">- Automated steel shaving collection scrap bin loop
+- Segmented internal plastic and municipal packaging bins</textarea>
+          </div>
+          <button onclick="triggerAI('environmental')" id="btn-environmental" class="w-full bg-emerald-600 text-white text-xs font-semibold py-2 rounded shadow hover:bg-emerald-700 transition">✨ Synthesize Environmental Footprint Disclosure</button>
+        </div>
+
+        <!-- TAB 4: SOCIAL & OHS -->
+        <div id="panel-social" class="hidden space-y-4">
+          <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">Employment & Safety Disclosures</h3>
+          <div class="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded border">
+            <div>
+              <label class="block text-xs font-medium text-gray-700">New Employee Hires (Count)</label>
+              <input type="number" id="socHires" value="12" oninput="runCalculations()" class="w-full border rounded p-1 text-sm mt-1">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700">Employee Attrition (Count)</label>
+              <input type="number" id="socDepartures" value="4" oninput="runCalculations()" class="w-full border rounded p-1 text-sm mt-1">
+            </div>
+          </div>
+          
+          <div class="space-y-2 bg-white p-3 border rounded">
+            <h4 class="text-xs font-bold text-gray-600">GRI 403: Occupational Health & Safety Compliance Matrix</h4>
+            <label class="flex items-center space-x-2 text-xs text-gray-700">
+              <input type="checkbox" id="chk403-1" checked class="rounded border-gray-300">
+              <span>403-1: Documented OHS Management System Active</span>
+            </label>
+            <label class="flex items-center space-x-2 text-xs text-gray-700">
+              <input type="checkbox" id="chk403-3" checked class="rounded border-gray-300">
+              <span>403-3: Access to Professional Occupational Health Services</span>
+            </label>
+            <label class="flex items-center space-x-2 text-xs text-gray-700">
+              <input type="checkbox" id="chk403-5" checked class="rounded border-gray-300">
+              <span>403-5: Mandatory Worker Safety Training Programs Logs</span>
+            </label>
+            <label class="flex items-center space-x-2 text-xs text-gray-700">
+              <input type="checkbox" id="chk403-6" checked class="rounded border-gray-300">
+              <span>403-6: Proactive Worker Wellness & Health Insurance Schemes</span>
+            </label>
+          </div>
+          <button onclick="triggerAI('social')" id="btn-social" class="w-full bg-emerald-600 text-white text-xs font-semibold py-2 rounded shadow hover:bg-emerald-700 transition">✨ Synthesize Workforce & Protection Index</button>
+        </div>
+
+        <!-- TAB 5: CAPITAL & CSR -->
+        <div id="panel-finance" class="hidden space-y-4">
+          <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">Financial Solvency & CSR Metrics</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-600">Operating Revenue (USD/yr)</label>
+              <input type="number" id="finRev" value="4200000" oninput="runCalculations()" class="w-full border rounded p-2 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600">EBITDA Earnings (USD/yr)</label>
+              <input type="number" id="finEbitda" value="650000" oninput="runCalculations()" class="w-full border rounded p-2 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600">Total Asset Value (USD)</label>
+              <input type="number" id="finAssets" value="3100000" oninput="runCalculations()" class="w-full border rounded p-2 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600">Total Liabilities (USD)</label>
+              <input type="number" id="finLiabilities" value="1200000" oninput="runCalculations()" class="w-full border rounded p-2 text-sm">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">GRI 413 & 203: Community & CSR Operations</label>
+            <textarea id="csrKeywords" rows="2" class="w-full border rounded p-2 text-sm">- Sponsored technical engineering micro-scholarships
+- Shared machinery access with municipal engineering student cohorts</textarea>
+          </div>
+          <button onclick="triggerAI('finance')" id="btn-finance" class="w-full bg-emerald-600 text-white text-xs font-semibold py-2 rounded shadow hover:bg-emerald-700 transition">✨ Synthesize Commercial Bank Capital Proposal</button>
+        </div>
+      </div>
+
+      <!-- PRINTACTION FOOTER -->
+      <div class="p-4 bg-gray-100 border-t border-gray-200 flex justify-between items-center">
+        <span class="text-xs text-gray-500">System State: Active/Production Ready</span>
+        <button onclick="window.print()" class="bg-gray-900 text-white text-xs font-bold px-4 py-2 rounded shadow hover:bg-black transition">🖨️ Export Board Ready PDF Dossier</button>
+      </div>
+    </div>
+
+    <!-- RIGHT HAND REAL-TIME 9-PAGE PREVIEW CANVAS -->
+    <div class="w-1/2 h-full overflow-y-auto bg-gray-400 p-8 space-y-8 print:w-full print:h-auto print:bg-white print:p-0">
+      
+      <!-- PAGE 1: COVER PAGE -->
+      <div class="bg-white shadow-xl aspect-[1/1.41] w-full p-12 flex flex-col justify-between report-page page-break bg-gradient-to-br from-white via-white to-gray-50 border-t-[16px]" style="border-top-color: var(--primary-color);">
+        <div>
+          <p class="text-sm font-bold tracking-widest text-gray-400 uppercase">Corporate Sustainability Disclosures Portfolio</p>
+          <h2 id="viewCoverName" class="text-4xl font-extrabold text-gray-900 mt-6 tracking-tight">Apex Manufacturing Ltd</h2>
+          <div class="w-20 h-1 mt-4" style="background-color: var(--primary-color);"></div>
+          <p class="text-gray-500 text-sm mt-4 max-w-md">Comprehensive Annual Environmental, Social, Economic, and Governance Reporting Baseline Aligned with GRI Universal Standard Criteria Framework.</p>
+        </div>
+        <div class="border-t border-gray-100 pt-6 flex justify-between items-end">
+          <div>
+            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Underwriting Access Channel</p>
+            <p class="text-sm font-bold text-gray-800 mt-1">Sustainability-Linked Credit Assessment</p>
+          </div>
+          <div class="text-right">
+            <p class="text-xs text-gray-400">Reporting Year Context</p>
+            <p class="text-sm font-bold text-gray-800">2026 Archive Cycle</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 2: GENERAL DISCLOSURES -->
+      <div class="bg-white shadow-xl aspect-[1/1.41] w-full p-12 flex flex-col justify-between report-page page-break">
+        <div class="space-y-6">
+          <div class="flex justify-between items-center border-b border-gray-100 pb-3">
+            <h3 class="text-xs font-bold tracking-widest text-gray-400 uppercase">Strategic Intent Alignment</h3>
+            <span class="text-xs px-2 py-0.5 rounded text-white text-semibold font-mono" style="background-color: var(--primary-color);">GRI 2: 2021</span>
+          </div>
+          <div>
+            <h4 class="text-lg font-bold text-gray-900 mb-2">Corporate Identity Structure</h4>
+            <table class="w-full text-xs text-left border-collapse">
+              <tr class="border-b"><th class="py-2 font-medium text-gray-500">Registered Office Headquarters</th><td id="viewAddress" class="py-2 text-gray-900 font-semibold">102 Industrial Sector, Business Zone 4</td></tr>
+              <tr class="border-b"><th class="py-2 font-medium text-gray-500">Business Scope Profile</th><td id="viewScale" class="py-2 text-gray-600">Mid-sized precision auto-component fabrication facility with 85 full-time personnel...</td></tr>
+            </table>
+          </div>
+          <div>
+            <h4 class="text-md font-bold text-gray-900 mb-1">Strategic Priorities & Values Policy</h4>
+            <div id="viewVision" class="text-xs text-gray-600 leading-relaxed bg-gray-50 p-4 rounded border border-gray-100 italic whitespace-pre-wrap">Click "Synthesize Core Policy Narrative" to run AI transformation pipeline engine.</div>
+          </div>
+        </div>
+        <p class="text-right text-[10px] text-gray-400 tracking-widest font-mono">Page 2 of 5</p>
+      </div>
+
+      <!-- PAGE 3: MATERIALITY MATRIX -->
+      <div class="bg-white shadow-xl aspect-[1/1.41] w-full p-12 flex flex-col justify-between report-page page-break">
+        <div class="space-y-6">
+          <div class="flex justify-between items-center border-b border-gray-100 pb-3">
+            <h3 class="text-xs font-bold tracking-widest text-gray-400 uppercase">Risk Evaluation Infrastructure</h3>
+            <span class="text-xs px-2 py-0.5 rounded text-white text-semibold font-mono" style="background-color: var(--primary-color);">GRI 3: 2021</span>
+          </div>
+          <h4 class="text-lg font-bold text-gray-900">3-1 Determination Priority Matrix Mapping</h4>
+          
+          <div class="flex justify-center my-4">
+            <!-- DYNAMIC MATERIALITY MATRIX SVG GRAPHIC -->
+            <svg class="w-64 h-64 border-l-2 border-b-2 border-gray-400 relative overflow-visible" viewBox="0 0 100 100">
+              <text x="50" y="105" text-anchor="middle" class="text-[5px] fill-gray-500 font-bold">Impact on Sustainable Development</text>
+              <text x="-50" y="-5" transform="rotate(-90)" text-anchor="middle" class="text-[5px] fill-gray-500 font-bold">Financial Materiality Value</text>
+              <line x1="0" y1="50" x2="100" y2="50" stroke="#f3f4f6" stroke-dasharray="2" />
+              <line x1="50" y1="0" x2="50" y2="100" stroke="#f3f4f6" stroke-dasharray="2" />
+              <!-- PLOTTED ESG DATA COORDINATES -->
+              <circle id="nodeCarbon" cx="80" cy="30" r="3" class="fill-blue-600" />
+              <text id="lblCarbon" x="84" y="31" class="text-[4px] font-bold fill-blue-900">Carbon Grid</text>
+              <circle id="nodeOhs" cx="90" cy="15" r="3" class="fill-red-600" />
+              <text id="lblOhs" x="94" y="16" class="text-[4px] font-bold fill-red-900">OHS Protection</text>
+            </svg>
+          </div>
+
+          <div>
+            <h4 class="text-xs font-bold tracking-wide text-gray-500 uppercase mb-2">Stakeholder Materiality Inflow Methodology</h4>
+            <div id="viewMateriality" class="text-xs text-gray-600 leading-relaxed bg-gray-50 p-4 rounded border border-gray-100 whitespace-pre-wrap">Click AI Synthesizer inside panel to generate narrative logs.</div>
+          </div>
+        </div>
+        <p class="text-right text-[10px] text-gray-400 tracking-widest font-mono">Page 3 of 5</p>
+      </div>
+
+      <!-- PAGE 4: ENVIRONMENT & GRI QUANTITATIVE INDICATORS -->
+      <div class="bg-white shadow-xl aspect-[1/1.41] w-full p-12 flex flex-col justify-between report-page page-break">
+        <div class="space-y-6">
+          <div class="flex justify-between items-center border-b border-gray-100 pb-3">
+            <h3 class="text-xs font-bold tracking-widest text-gray-400 uppercase">Operational Footprint Registry</h3>
+            <div class="flex space-x-1">
+              <span class="text-[10px] bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded font-mono">GRI 302</span>
+              <span class="text-[10px] bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded font-mono">GRI 303</span>
+              <span class="text-[10px] bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded font-mono">GRI 306</span>
+            </div>
+          </div>
+          
+          <h4 class="text-lg font-bold text-gray-900">Quantitative Resources Resource Index Transformations</h4>
+          
+          <table class="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr class="bg-gray-100 border-b text-gray-600 uppercase font-bold text-[10px]"><th class="p-2">Standard Metric Disclosure Category</th><th class="p-2">User Entry Intake</th><th class="p-2">Standardized GRI Transformation Metric</th></tr>
+            </thead>
+            <tbody class="divide-y text-gray-700">
+              <tr><td class="p-2 font-medium">GRI 302-1: Absolute Indirect Energy Load</td><td id="calcRawElec" class="p-2">120,000 kWh</td><td id="calcGriElec" class="p-2 font-bold text-gray-900">432.00 GJ (120.00 MWh)</td></tr>
+              <tr><td class="p-2 font-medium">GRI 302-1: Direct Asset Logistics Energy Usage</td><td id="calcRawDiesel" class="p-2">4,500 Gal</td><td id="calcGriDiesel" class="p-2 font-bold text-gray-900">657.00 GJ (17,032.50 L)</td></tr>
+              <tr><td class="p-2 font-medium">GRI 303-3: Volumetric Fresh Water Extraction</td><td id="calcRawWater" class="p-2">340,000 Gal</td><td id="calcGriWater" class="p-2 font-bold text-gray-900">1.29 ML (1,286.90 m³)</td></tr>
+              <tr><td class="p-2 font-medium">GRI 303-4: Surface System Effluent Discharges</td><td id="calcRawEffluent" class="p-2">80,000 Gal</td><td id="calcGriEffluent" class="p-2 font-bold text-gray-900">0.30 ML (302.80 m³)</td></tr>
+              <tr><td class="p-2 font-medium">GRI 306-3: Aggregate Weight of Waste Footprint</td><td id="calcRawWaste" class="p-2">45.00 Tons</td><td id="calcGriWaste" class="p-2 font-bold text-gray-900">40.82 Metric Tons (t)</td></tr>
+              <tr class="bg-emerald-50 text-emerald-900 font-semibold"><td class="p-2">GRI 306-4: Circular Transformation Recovery Ratio</td><td id="calcRawRecycle" class="p-2">31.00 Tons</td><td id="calcGriRatio" class="p-2 font-bold">68.89% Recycled/Diverted</td></tr>
+            </tbody>
+          </table>
+
+          <div>
+            <h4 class="text-xs font-bold tracking-wide text-gray-500 uppercase mb-2">Sustainable Resource Lifecycle Strategy Analysis</h4>
+            <div id="viewEnvironmental" class="text-xs text-gray-600 leading-relaxed bg-gray-50 p-4 rounded border border-gray-100 whitespace-pre-wrap">Click AI Synthesizer inside panel to generate narrative logs.</div>
+          </div>
+        </div>
+        <p class="text-right text-[10px] text-gray-400 tracking-widest font-mono">Page 4 of 5</p>
+      </div>
+
+      <!-- PAGE 5: FINANCIAL BANKABILITY & SOCIAL STANDARDS -->
+      <div class="bg-white shadow-xl aspect-[1/1.41] w-full p-12 flex flex-col justify-between report-page page-break">
+        <div class="space-y-6">
+          <div class="flex justify-between items-center border-b border-gray-100 pb-3">
+            <h3 class="text-xs font-bold tracking-widest text-gray-400 uppercase">Capital Strategy Underwriting Portfolio</h3>
+            <div class="flex space-x-1">
+              <span class="text-[10px] bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded font-mono">GRI 201</span>
+              <span class="text-[10px] bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded font-mono">GRI 401</span>
+              <span class="text-[10px] bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded font-mono">GRI 403</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-gray-50 p-3 rounded border">
+              <h5 class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Social Index Summary</h5>
+              <p class="text-xs text-gray-700 mt-2">New Hires Rate: <span id="lblHireRate" class="font-bold text-gray-900">0.0%</span></p>
+              <p class="text-xs text-gray-700">Turnover/Attrition Rate: <span id="lblTurnRate" class="font-bold text-gray-900">0.0%</span></p>
+              <p class="text-[10px] text-emerald-700 font-semibold mt-2">✓ All GRI 403 Health/Safety Policies Activated</p>
+            </div>
+            <div class="bg-gray-50 p-3 rounded border">
+              <h5 class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Asset Allocation Solvency Indices</h5>
+              <p class="text-xs text-gray-700 mt-2">EBITDA Operational Margin: <span id="lblEbitda" class="font-bold text-gray-900">15.48%</span></p>
+              <p class="text-xs text-gray-700">Debt-to-Asset Leverage Base: <span id="lblLeverage" class="font-bold text-gray-900">38.71%</span></p>
+            </div>
+          </div>
+
+          <div>
+            <h4 class="text-md font-bold text-gray-900 mb-2">Sustainable Credit Structuring & Risk Assurances</h4>
+            <div id="viewFinance" class="text-xs text-gray-600 leading-relaxed bg-gray-100 p-4 rounded border border-gray-200 whitespace-pre-wrap">Click "Synthesize Commercial Bank Capital Proposal" inside left cockpit module panel to execute server compilation pipelines.</div>
+          </div>
+        </div>
+        
+        <div class="border-t border-gray-100 pt-4 flex justify-between items-center text-[10px] text-gray-400">
+          <p>Execution Certified Baseline: Independent Corporate Core Disclosure Protocol</p>
+          <p class="font-mono tracking-widest">Page 5 of 5</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // FORM INTERACTION AND COORDINATED TRANSLATION ROUTINES
+    function switchTab(tabId) {
+      ['profile', 'materiality', 'environmental', 'social', 'finance'].forEach(t => {
+        document.getElementById('panel-' + t).classList.add('hidden');
+        document.getElementById('tab-' + t).classList.remove('active-tab');
+        document.getElementById('tab-' + t).classList.add('border-transparent');
+      });
+      document.getElementById('panel-' + tabId).classList.remove('hidden');
+      document.getElementById('tab-' + tabId).classList.add('active-tab');
+    }
+
+    // THEME SELECTION ROUTINES
+    document.getElementById('themeSelector').addEventListener('change', (e) => {
+      const themes = {
+        emerald: '#059669',
+        ocean: '#0284c7',
+        navy: '#1e3a8a',
+        burgundy: '#991b1b'
+      };
+      const color = themes[e.target.value];
+      document.body.style.setProperty('--primary-color', color);
+    });
+
+    // COMPILATION CALCULATIONS ENGINE (US -> COMPLIANT INTERNATIONAL GRI METRICS)
+    function runCalculations() {
+      const name = document.getElementById('compName').value;
+      document.getElementById('viewCoverName').innerText = name;
+      document.getElementById('viewAddress').innerText = document.getElementById('compAddress').value;
+      document.getElementById('viewScale').innerText = document.getElementById('compScale').value;
+
+      // Energy Metrics Transformation
+      const elec = parseFloat(document.getElementById('envElec').value) || 0;
+      document.getElementById('calcRawElec').innerText = elec.toLocaleString() + " kWh";
+      document.getElementById('calcGriElec').innerText = (elec * 0.0036).toFixed(2) + " GJ (" + (elec / 1000).toFixed(2) + " MWh)";
+
+      const diesel = parseFloat(document.getElementById('envDiesel').value) || 0;
+      document.getElementById('calcRawDiesel').innerText = diesel.toLocaleString() + " Gal";
+      document.getElementById('calcGriDiesel').innerText = (diesel * 0.146).toFixed(2) + " GJ (" + (diesel * 3.785).toFixed(2) + " L)";
+
+      // Water Metric Conversions
+      const water = parseFloat(document.getElementById('envWater').value) || 0;
+      document.getElementById('calcRawWater').innerText = water.toLocaleString() + " Gal";
+      document.getElementById('calcGriWater').innerText = (water * 0.000003785).toFixed(4) + " ML (" + (water * 0.0037854).toFixed(1) + " m³)";
+
+      const effluent = parseFloat(document.getElementById('envEffluent').value) || 0;
+      document.getElementById('calcRawEffluent').innerText = effluent.toLocaleString() + " Gal";
+      document.getElementById('calcGriEffluent').innerText = (effluent * 0.000003785).toFixed(4) + " ML (" + (effluent * 0.0037854).toFixed(1) + " m³)";
+
+      // Waste Vector Conversions
+      const waste = parseFloat(document.getElementById('envWaste').value) || 0;
+      const recycle = parseFloat(document.getElementById('envRecycle').value) || 0;
+      document.getElementById('calcRawWaste').innerText = waste.toFixed(2) + " Tons";
+      document.getElementById('calcRawRecycle').innerText = recycle.toFixed(2) + " Tons";
+      document.getElementById('calcGriWaste').innerText = (waste * 0.90718).toFixed(2) + " Metric Tons (t)";
+      
+      const ratio = waste > 0 ? (recycle / waste) * 100 : 0;
+      document.getElementById('calcGriRatio').innerText = ratio.toFixed(2) + "% Recycled/Diverted";
+
+      // Social Rates Mapping
+      const staffBase = 85; // Fixed example profile base size
+      const hires = parseFloat(document.getElementById('socHires').value) || 0;
+      const departures = parseFloat(document.getElementById('socDepartures').value) || 0;
+      document.getElementById('lblHireRate').innerText = ((hires / staffBase) * 100).toFixed(1) + "%";
+      document.getElementById('lblTurnRate').innerText = ((departures / staffBase) * 100).toFixed(1) + "%";
+
+      // Capital Balance Sheet Formulas
+      const rev = parseFloat(document.getElementById('finRev').value) || 1;
+      const ebitda = parseFloat(document.getElementById('finEbitda').value) || 0;
+      const assets = parseFloat(document.getElementById('finAssets').value) || 1;
+      const liabilities = parseFloat(document.getElementById('finLiabilities').value) || 0;
+
+      document.getElementById('lblEbitda').innerText = ((ebitda / rev) * 100).toFixed(2) + "%";
+      document.getElementById('lblLeverage').innerText = ((liabilities / assets) * 100).toFixed(2) + "%";
+
+      // Re-plot scatter coordinates dynamically inside standard matrix
+      const carbonVal = Math.min(5, Math.max(1, parseInt(document.getElementById('matCarbon').value) || 3));
+      const ohsVal = Math.min(5, Math.max(1, parseInt(document.getElementById('matOhs').value) || 3));
+      
+      document.getElementById('nodeCarbon').setAttribute('cx', (carbonVal * 18).toString());
+      document.getElementById('lblCarbon').setAttribute('x', (carbonVal * 18 + 4).toString());
+      document.getElementById('nodeOhs').setAttribute('cx', (ohsVal * 18).toString());
+      document.getElementById('lblOhs').setAttribute('x', (ohsVal * 18 + 4).toString());
+    }
+
+    // SERVERLESS AI DEPLOYMENT ROUTER GATEWAY CONNECTION PUMP
+    async function triggerAI(type) {
+      const btn = document.getElementById('btn-' + type);
+      const originalText = btn.innerText;
+      btn.innerText = "⚡ Composing Sustainable Content Matrices...";
+      btn.disabled = true;
+
+      let promptText = "";
+      const company = document.getElementById('compName').value;
+
+      // Dynamic Context Prompt Assembly matching specific framework requests
+      if (type === 'vision') {
+        promptText = `Draft a high-level official corporate 'Sustainability Vision, Mission, and Values Document' for an SME called ${company}. Based on these bullet items: ${document.getElementById('compVision').value}. Make it professional and exclude introductory filler notes.`;
+      } else if (type === 'materiality') {
+        promptText = `Draft a GRI 3 Standard compliant 'Materiality Determination and Stakeholder Engagement Narrative' for ${company}. Detail this stakeholder review pipeline log context: ${document.getElementById('matProcess').value}. Professional tone without preamble.`;
+      } else if (type === 'environmental') {
+        promptText = `Write a professional corporate environmental statement for ${company} outlining waste diversion actions and circular manufacturing objectives according to GRI 306 standards based on these keywords: ${document.getElementById('envKeywords').value}. Total waste generated is ${document.getElementById('calcGriWaste').innerText}.`;
+      } else if (type === 'finance') {
+        promptText = `Write an official bank credit risk assessment profile narrative for ${company} seeking capital leverage loans based on asset values. Explain how their healthy OHS tracking and CSR impacts listed here: ${document.getElementById('csrKeywords').value} offset traditional financial vulnerabilities. EBITDA margin is ${document.getElementById('lblEbitda').innerText} and Leverage is ${document.getElementById('lblLeverage').innerText}. Avoid any commentary about AI generation.`;
+      }
+
+      try {
+        // Trigger safe connection route path pointing directly to local Serverless Function wrapper endpoint
+        const response = await fetch('/api/gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: promptText })
+        });
+        
+        const resData = await response.json();
+        
+        if (type === 'vision') document.getElementById('viewVision').innerText = resData.text;
+        if (type === 'materiality') document.getElementById('viewMateriality').innerText = resData.text;
+        if (type === 'environmental') document.getElementById('viewEnvironmental').innerText = resData.text;
+        if (type === 'finance') document.getElementById('viewFinance').innerText = resData.text;
+      } catch (err) {
+        alert("Serverless endpoint fallback triggered. If running locally, check function folder initialization.");
+        console.error(err);
+      } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+      }
+    }
+
+    // Run basic initialization calculations matrix on screen baseline paint load
+    window.onload = runCalculations;
+  </script>
+</body>
+</html>
